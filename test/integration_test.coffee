@@ -92,8 +92,29 @@ describe 'integration', ->
         "reader with compression (#{compression[0]}) and tls (#{options.tls?})"
 
       describe description, ->
-        it 'should send and receive a message', (done) ->
+        it 'should pass Reader config to the NSQDConnections', (done) ->
+          topic = 'test'
+          channel = 'default'
+          message = "a message for our reader"
 
+          publish topic, message
+
+          reader = new nsq.Reader topic, channel,
+            _.extend {nsqdTCPAddresses: ["127.0.0.1:#{TCP_PORT}"]}, options
+
+          # Ensure that a connection was made
+          reader.on 'message', (msg) =>
+            connection = reader.readerRdy.connections[0].conn
+
+            for key, value of options
+              reader.config[key].should.eql options[key]
+              connection.config[key].should.eql options[key]
+
+            done()
+
+          reader.connect()
+
+        it 'should send and receive a message', (done) ->
           topic = 'test'
           channel = 'default'
           message = "a message for our reader"
